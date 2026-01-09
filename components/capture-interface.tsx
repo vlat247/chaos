@@ -1,61 +1,31 @@
+// components/capture-interface.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-
-const tags = [
-  { label: "#idea", shortcut: "⌘1", color: "text-amber-400" },
-  { label: "#todo", shortcut: "⌘2", color: "text-emerald-400" },
-  { label: "#project", shortcut: "⌘3", color: "text-sky-400" },
-  { label: "#note", shortcut: "⌘4", color: "text-pink-400" },
-];
-
-// 1. Define what a "Note" looks like
-interface Note {
-  id: string;
-  content: string;
-  timestamp: Date;
-}
+import { TAGS } from "@/types/types";
+import { useNotes } from "@/hooks/use-notes"; // Import the brain
 
 export function CaptureInterface() {
+  // 1. Hook into the brain
+  const {
+    notes,
+    editingId,
+    editValue,
+    setEditValue,
+    addNote,
+    deleteNote,
+    startEditing,
+    cancelEdit,
+    saveEdit,
+  } = useNotes();
+
+  // 2. UI-Only State (Input Bar logic)
   const [inputValue, setInputValue] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // 2. This is the "Database" (stored in memory for now)
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-
-  // --- Load from browser memory on startup ---
-  useEffect(() => {
-    const savedNotes = localStorage.getItem("chaos-notes");
-    if (savedNotes) {
-      try {
-        // We parse the JSON back into objects
-        // We also need to fix the "Date" because JSON turns dates into strings
-        const parsed = JSON.parse(savedNotes).map((note: any) => ({
-          ...note,
-          timestamp: new Date(note.timestamp),
-        }));
-        setNotes(parsed);
-      } catch (e) {
-        console.error("Failed to load notes", e);
-      }
-    }
-  }, []);
-
-  // --- Save to browser memory whenever notes change ---
-  useEffect(() => {
-    // Only save if we actually have notes (or if we explicitly want to save empty)
-    // This prevents overwriting data on the very first render
-    if (notes.length > 0) {
-      localStorage.setItem("chaos-notes", JSON.stringify(notes));
-    }
-  }, [notes]);
-
   const inputRef = useRef<HTMLInputElement>(null);
-
   const isTyping = inputValue.length > 0;
 
   useEffect(() => {
@@ -63,35 +33,25 @@ export function CaptureInterface() {
     setSelectedIndex(0);
   }, [isTyping]);
 
+  // Keyboard Handler for the INPUT BAR only
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // --- Handle Enter Key ---
-      if (e.key === "Enter") {
-        if (inputValue.trim() === "") return; // Don't save empty notes
-
+      // Enter to Create
+      if (e.key === "Enter" && !editingId) {
+        if (inputValue.trim() === "") return;
         e.preventDefault();
-
-        // Create the new note object
-        const newNote: Note = {
-          id: Date.now().toString(),
-          content: inputValue,
-          timestamp: new Date(),
-        };
-
-        // Add to the top of the list
-        setNotes((prev) => [newNote, ...prev]);
-
-        // Reset the input
+        addNote(inputValue); // Use Hook
         setInputValue("");
         setShowDropdown(false);
         return;
       }
 
+      // Tags & Dropdown
       if (e.metaKey || e.ctrlKey) {
         const num = Number.parseInt(e.key);
-        if (num >= 1 && num <= tags.length) {
+        if (num >= 1 && num <= TAGS.length) {
           e.preventDefault();
-          const tag = tags[num - 1];
+          const tag = TAGS[num - 1];
           setInputValue((prev) => `${prev} ${tag.label}`);
         }
       }
@@ -99,13 +59,13 @@ export function CaptureInterface() {
       if (showDropdown) {
         if (e.key === "ArrowDown") {
           e.preventDefault();
-          setSelectedIndex((prev) => (prev + 1) % tags.length);
+          setSelectedIndex((prev) => (prev + 1) % TAGS.length);
         } else if (e.key === "ArrowUp") {
           e.preventDefault();
-          setSelectedIndex((prev) => (prev - 1 + tags.length) % tags.length);
+          setSelectedIndex((prev) => (prev - 1 + TAGS.length) % TAGS.length);
         } else if (e.key === "Tab") {
           e.preventDefault();
-          const tag = tags[selectedIndex];
+          const tag = TAGS[selectedIndex];
           setInputValue((prev) => `${prev} ${tag.label}`);
         }
       }
@@ -113,52 +73,20 @@ export function CaptureInterface() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showDropdown, selectedIndex, inputValue]);
+  }, [showDropdown, selectedIndex, inputValue, editingId, addNote]);
 
   const handleTagClick = (tag: string) => {
     setInputValue((prev) => `${prev} ${tag}`);
     inputRef.current?.focus();
   };
 
-  const handleDeleteNote = (id: string) => {
-    const newNotes = notes.filter((n) => n.id !== id);
-    setNotes(newNotes);
-    if (newNotes.length === 0) localStorage.removeItem("chaos-notes");
-  };
-
-  const handleEditNote = (note: Note) => {
-    setEditingId(note.id);
-    setEditValue(note.content);
-  };
-
-  const handleSaveEdit = (id: string) => {
-    if (editValue.trim() === "") {
-      handleDeleteNote(id);
-    } else {
-      setNotes((prev) =>
-        prev.map((note) =>
-          note.id === id ? { ...note, content: editValue } : note
-        )
-      );
-    }
-    setEditingId(null);
-    setEditValue("");
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditValue("");
-  };
-
   return (
     <div className="w-full max-w-2xl px-4 flex flex-col items-center">
       {/* Floating Input Container */}
       <div className="relative w-full z-10">
-        {/* Glow Effect */}
         <div className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/30 to-white/20 rounded-full blur-xl opacity-60" />
         <div className="absolute -inset-0.5 bg-white/10 rounded-full blur-md" />
 
-        {/* Input Bar */}
         <div className="relative">
           <input
             ref={inputRef}
@@ -183,7 +111,7 @@ export function CaptureInterface() {
         {showDropdown && (
           <div className="absolute top-full left-0 right-0 mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl shadow-black/50 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="p-2">
-              {tags.map((tag, index) => (
+              {TAGS.map((tag, index) => (
                 <button
                   key={tag.label}
                   onClick={() => handleTagClick(tag.label)}
@@ -234,7 +162,7 @@ export function CaptureInterface() {
           <div
             key={note.id}
             onDoubleClick={() => {
-              if (editingId !== note.id) handleEditNote(note);
+              if (editingId !== note.id) startEditing(note); // Use Hook
             }}
             className="group relative w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white/90 backdrop-blur-sm animate-in slide-in-from-bottom-2 fade-in duration-300 cursor-pointer hover:bg-white/10 transition-colors"
           >
@@ -242,11 +170,11 @@ export function CaptureInterface() {
               <div className="flex flex-col gap-2">
                 <input
                   type="text"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
+                  value={editValue} // Use Hook State
+                  onChange={(e) => setEditValue(e.target.value)} // Use Hook Setter
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveEdit(note.id);
-                    if (e.key === "Escape") handleCancelEdit();
+                    if (e.key === "Enter") saveEdit(note.id); // Use Hook
+                    if (e.key === "Escape") cancelEdit(); // Use Hook
                   }}
                   autoFocus
                   className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-lg focus:outline-none focus:ring-2 focus:ring-white/30"
@@ -258,7 +186,7 @@ export function CaptureInterface() {
             ) : (
               <>
                 <button
-                  onClick={() => handleDeleteNote(note.id)}
+                  onClick={() => deleteNote(note.id)} // Use Hook
                   className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200"
                   aria-label="Delete note"
                 >

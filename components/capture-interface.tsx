@@ -259,7 +259,7 @@ export function CaptureInterface() {
               <>
                 <button
                   onClick={() => handleDeleteNote(note.id)}
-                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-red-500/20 rounded-full"
+                  className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200"
                   aria-label="Delete note"
                 >
                   <svg
@@ -272,7 +272,7 @@ export function CaptureInterface() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-red-400"
+                    className="text-white transition-all duration-200 hover:scale-125 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"
                   >
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>

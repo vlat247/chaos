@@ -24,7 +24,10 @@ export function CaptureInterface() {
 
   // 2. This is the "Database" (stored in memory for now)
   const [notes, setNotes] = useState<Note[]>([]);
-  // --- NEW: Load from browser memory on startup ---
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  // --- Load from browser memory on startup ---
   useEffect(() => {
     const savedNotes = localStorage.getItem("chaos-notes");
     if (savedNotes) {
@@ -41,7 +44,8 @@ export function CaptureInterface() {
       }
     }
   }, []);
-  // --- NEW: Save to browser memory whenever notes change ---
+
+  // --- Save to browser memory whenever notes change ---
   useEffect(() => {
     // Only save if we actually have notes (or if we explicitly want to save empty)
     // This prevents overwriting data on the very first render
@@ -61,7 +65,7 @@ export function CaptureInterface() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // --- NEW LOGIC: Handle Enter Key ---
+      // --- Handle Enter Key ---
       if (e.key === "Enter") {
         if (inputValue.trim() === "") return; // Don't save empty notes
 
@@ -82,7 +86,6 @@ export function CaptureInterface() {
         setShowDropdown(false);
         return;
       }
-      // -----------------------------------
 
       if (e.metaKey || e.ctrlKey) {
         const num = Number.parseInt(e.key);
@@ -110,11 +113,41 @@ export function CaptureInterface() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showDropdown, selectedIndex, inputValue]); // Added inputValue to dependencies
+  }, [showDropdown, selectedIndex, inputValue]);
 
   const handleTagClick = (tag: string) => {
     setInputValue((prev) => `${prev} ${tag}`);
     inputRef.current?.focus();
+  };
+
+  const handleDeleteNote = (id: string) => {
+    const newNotes = notes.filter((n) => n.id !== id);
+    setNotes(newNotes);
+    if (newNotes.length === 0) localStorage.removeItem("chaos-notes");
+  };
+
+  const handleEditNote = (note: Note) => {
+    setEditingId(note.id);
+    setEditValue(note.content);
+  };
+
+  const handleSaveEdit = (id: string) => {
+    if (editValue.trim() === "") {
+      handleDeleteNote(id);
+    } else {
+      setNotes((prev) =>
+        prev.map((note) =>
+          note.id === id ? { ...note, content: editValue } : note
+        )
+      );
+    }
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditValue("");
   };
 
   return (
@@ -189,7 +222,7 @@ export function CaptureInterface() {
         <span>to save</span>
       </div>
 
-      {/* --- NEW SECTION: Display the Notes --- */}
+      {/* Display the Notes */}
       <div className="w-full mt-12 space-y-4">
         {notes.length > 0 && (
           <div className="text-white/40 text-xs font-mono uppercase tracking-widest pl-2">
@@ -200,29 +233,65 @@ export function CaptureInterface() {
         {notes.map((note) => (
           <div
             key={note.id}
-            // Add this line below:
             onDoubleClick={() => {
-              const newNotes = notes.filter((n) => n.id !== note.id);
-              setNotes(newNotes);
-              // Also update local storage immediately if list becomes empty
-              if (newNotes.length === 0) localStorage.removeItem("chaos-notes");
+              if (editingId !== note.id) handleEditNote(note);
             }}
-            // Keep the className and other stuff the same...
-            className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white/90 backdrop-blur-sm animate-in slide-in-from-bottom-2 fade-in duration-300 cursor-pointer hover:bg-white/10 transition-colors"
+            className="group relative w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white/90 backdrop-blur-sm animate-in slide-in-from-bottom-2 fade-in duration-300 cursor-pointer hover:bg-white/10 transition-colors"
           >
-            <div className="flex justify-between items-start gap-4">
-              <p className="text-lg leading-relaxed">{note.content}</p>
-              <span className="text-xs text-white/30 font-mono whitespace-nowrap pt-1">
-                {note.timestamp.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
+            {editingId === note.id ? (
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveEdit(note.id);
+                    if (e.key === "Escape") handleCancelEdit();
+                  }}
+                  autoFocus
+                  className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-lg focus:outline-none focus:ring-2 focus:ring-white/30"
+                />
+                <div className="flex gap-2 text-xs text-white/40">
+                  <span>Press Enter to save • Esc to cancel</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => handleDeleteNote(note.id)}
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-red-500/20 rounded-full"
+                  aria-label="Delete note"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-red-400"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+                <div className="flex justify-between items-start gap-4 pr-8">
+                  <p className="text-lg leading-relaxed">{note.content}</p>
+                  <span className="text-xs text-white/30 font-mono whitespace-nowrap pt-1">
+                    {note.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>
-      {/* -------------------------------------- */}
     </div>
   );
 }

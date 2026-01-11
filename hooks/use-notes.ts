@@ -5,37 +5,12 @@ import { useState, useEffect } from "react";
 import { Note } from "@/types/types";
 
 export function useNotes() {
+  // Указываем, что notes - это массив паспортов Note (<Note[]>)
   const [notes, setNotes] = useState<Note[]>([]);
-
-  // Edit Mode States (Moved here because they control data manipulation)
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  // --- Load Logic ---
-  useEffect(() => {
-    const savedNotes = localStorage.getItem("chaos-notes");
-    if (savedNotes) {
-      try {
-        const parsed = JSON.parse(savedNotes).map((note: any) => ({
-          ...note,
-          timestamp: new Date(note.timestamp),
-        }));
-        setNotes(parsed);
-      } catch (e) {
-        console.error("Failed to load notes", e);
-      }
-    }
-  }, []);
-
-  // --- Save Logic ---
-  useEffect(() => {
-    if (notes.length > 0) {
-      localStorage.setItem("chaos-notes", JSON.stringify(notes));
-    }
-    // Optional: Add else { localStorage.removeItem... } if you want
-  }, [notes]);
-
-  // --- Actions ---
+  // content должен быть строкой (string)
   const addNote = (content: string) => {
     const newNote: Note = {
       id: Date.now().toString(),
@@ -45,12 +20,12 @@ export function useNotes() {
     setNotes((prev) => [newNote, ...prev]);
   };
 
+  // id должен быть строкой (string)
   const deleteNote = (id: string) => {
-    const newNotes = notes.filter((n) => n.id !== id);
-    setNotes(newNotes);
-    if (newNotes.length === 0) localStorage.removeItem("chaos-notes");
+    setNotes((prev) => prev.filter((note) => note.id !== id));
   };
 
+  // note должен соответствовать интерфейсу Note
   const startEditing = (note: Note) => {
     setEditingId(note.id);
     setEditValue(note.content);
@@ -61,30 +36,31 @@ export function useNotes() {
     setEditValue("");
   };
 
+  // id - строка
   const saveEdit = (id: string) => {
-    if (editValue.trim() === "") {
-      deleteNote(id);
-    } else {
-      setNotes((prev) =>
-        prev.map((note) =>
-          note.id === id ? { ...note, content: editValue } : note
-        )
-      );
-    }
+    setNotes((prev) =>
+      prev.map((note) =>
+        note.id === id ? { ...note, content: editValue } : note
+      )
+    );
     setEditingId(null);
     setEditValue("");
   };
 
-  // Expose everything the UI needs
+  const clearAllNotes = () => {
+    setNotes([]);
+  };
+
   return {
     notes,
     editingId,
     editValue,
-    setEditValue, // UI needs this for the input field
+    setEditValue,
     addNote,
     deleteNote,
     startEditing,
     cancelEdit,
     saveEdit,
+    clearAllNotes,
   };
 }

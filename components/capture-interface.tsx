@@ -2,87 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { X, Settings } from "lucide-react";
-
-// 1. Сначала определяем, как выглядит паспорт "Заметки"
-interface Note {
-  id: string;
-  content: string;
-  timestamp: Date;
-}
-
-const TAGS = [
-  { label: "#idea", shortcut: "⌘1", color: "text-blue-400" },
-  { label: "#todo", shortcut: "⌘2", color: "text-green-400" },
-  { label: "#note", shortcut: "⌘3", color: "text-yellow-400" },
-  { label: "#question", shortcut: "⌘4", color: "text-purple-400" },
-];
-
-function useNotes() {
-  // Указываем, что notes - это массив паспортов Note (<Note[]>)
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-
-  // content должен быть строкой (string)
-  const addNote = (content: string) => {
-    const newNote: Note = {
-      id: Date.now().toString(),
-      content,
-      timestamp: new Date(),
-    };
-    setNotes((prev) => [newNote, ...prev]);
-  };
-
-  // id должен быть строкой (string)
-  const deleteNote = (id: string) => {
-    setNotes((prev) => prev.filter((note) => note.id !== id));
-  };
-
-  // note должен соответствовать интерфейсу Note
-  const startEditing = (note: Note) => {
-    setEditingId(note.id);
-    setEditValue(note.content);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditValue("");
-  };
-
-  // id - строка
-  const saveEdit = (id: string) => {
-    setNotes((prev) =>
-      prev.map((note) =>
-        note.id === id ? { ...note, content: editValue } : note
-      )
-    );
-    setEditingId(null);
-    setEditValue("");
-  };
-
-  const clearAllNotes = () => {
-    setNotes([]);
-  };
-
-  return {
-    notes,
-    editingId,
-    editValue,
-    setEditValue,
-    addNote,
-    deleteNote,
-    startEditing,
-    cancelEdit,
-    saveEdit,
-    clearAllNotes,
-  };
-}
+import { Note, TAGS } from "@/types/types";
+import { useNotes } from "@/hooks/use-notes";
 
 function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(" ");
 }
-
-// ... Дальше идет твой CaptureInterface (он в порядке)
 
 export function CaptureInterface() {
   const {

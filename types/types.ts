@@ -1,4 +1,3 @@
-//this is how note looks like
 export interface Note {
   id: string;
   content: string;

@@ -12,48 +12,16 @@ export function SmartInput({ onCapture }: SmartInputProps) {
   const [value, setValue] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Isolate the keyboard logic here
+  // Auto-resize logic
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 1. Tag Shortcuts (Ctrl + 1..N)
-      if (e.metaKey || e.ctrlKey) {
-        const num = parseInt(e.key);
-        if (num >= 1 && num <= TAGS.length) {
-          e.preventDefault();
-          const tag = TAGS[num - 1];
-          setValue((prev) => `${prev} ${tag.label}`);
-        }
-      }
-
-      // 2. Dropdown Navigation
-      if (showDropdown) {
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          setSelectedIndex((prev) => (prev + 1) % TAGS.length);
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          setSelectedIndex((prev) => (prev - 1 + TAGS.length) % TAGS.length);
-        } else if (e.key === "Tab") {
-          e.preventDefault();
-          const tag = TAGS[selectedIndex];
-          setValue((prev) => `${prev} ${tag.label}`);
-        }
-      }
-
-      // 3. Submission
-      if (e.key === "Enter" && value.trim()) {
-        e.preventDefault();
-        onCapture(value);
-        setValue("");
-        setShowDropdown(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [value, showDropdown, selectedIndex, onCapture]);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height =
+        textareaRef.current.scrollHeight + "px";
+    }
+  }, [value]);
 
   // Update dropdown visibility based on typing
   useEffect(() => {
@@ -61,17 +29,71 @@ export function SmartInput({ onCapture }: SmartInputProps) {
     setSelectedIndex(0);
   }, [value]);
 
-  return (
-    <div className="relative w-full max-w-2xl">
-      {/* Visual Flair (Glows) */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/30 to-white/20 rounded-full blur-xl opacity-60" />
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // 1. Tag Shortcuts (Ctrl + 1..N)
+    if (e.metaKey || e.ctrlKey) {
+      const num = parseInt(e.key);
+      if (!isNaN(num) && num >= 1 && num <= TAGS.length) {
+        e.preventDefault();
+        const tag = TAGS[num - 1];
+        setValue((prev) => `${prev} ${tag.label}`);
+        return;
+      }
+    }
 
-      <input
-        ref={inputRef}
+    // 2. Dropdown Navigation (Only if dropdown is open)
+    if (showDropdown) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev + 1) % TAGS.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev - 1 + TAGS.length) % TAGS.length);
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const tag = TAGS[selectedIndex];
+        setValue((prev) => `${prev} ${tag.label}`);
+        return;
+      }
+    }
+
+    // 3. Submission Logic
+    if (e.key === "Enter") {
+      // If Shift is NOT pressed -> Submit
+      if (!e.shiftKey) {
+        e.preventDefault(); // Prevent creating a new line
+        if (value.trim()) {
+          onCapture(value);
+          setValue("");
+          setShowDropdown(false);
+          // Reset height manually after submit
+          if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+          }
+        }
+      }
+      // If Shift IS pressed -> Do nothing (Browser inserts new line naturally)
+    }
+  };
+
+  return (
+    <div className="relative w-full max-w-2xl group">
+      {/* Visual Flair (Glows) */}
+      <div className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/30 to-white/20 rounded-3xl blur-xl opacity-60 group-focus-within:opacity-80 transition-opacity" />
+
+      <textarea
+        ref={textareaRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder="Capture anything..."
-        className="w-full px-6 py-4 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder:text-white/40 text-lg font-sans focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.1)]"
+        rows={1}
+        className="w-full px-6 py-4 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder:text-white/40 text-lg font-sans focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.1)] resize-none overflow-hidden"
+        style={{ minHeight: "60px" }}
       />
 
       {showDropdown && (
@@ -96,24 +118,17 @@ function TagDropdown({ selectedIndex, onSelect }: TagDropdownProps) {
         {TAGS.map((tag, index) => (
           <button
             key={tag.label}
-            // STOP PROPAGATION: Important so clicking a tag doesn't blur the input immediately in weird ways
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onSelect(tag.label)}
             className={cn(
               "w-full flex items-center justify-between px-4 py-3 rounded-xl",
               "transition-all duration-150",
-              // Highlight if it's the selected index OR if hovered (handled by CSS hover)
               selectedIndex === index
                 ? "bg-white/10 text-white"
                 : "text-white/70 hover:bg-white/5 hover:text-white"
             )}
           >
-            <span
-              className={cn(
-                "font-mono text-sm tracking-tight",
-                tag.color // Assuming your tag object has a color class string
-              )}
-            >
+            <span className={cn("font-mono text-sm tracking-tight", tag.color)}>
               {tag.label}
             </span>
             <kbd className="font-mono text-xs text-white/30 bg-white/5 px-2 py-1 rounded-md border border-white/10">

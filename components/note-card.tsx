@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import ReactMarkdown from "react-markdown"; // 1. Import library
 import { Note } from "@/types/types";
+import remarkBreaks from "remark-breaks";
 
 interface NoteCardProps {
   note: Note;
@@ -66,6 +67,7 @@ export function NoteCard({
       {/* 2. Markdown Rendering Container */}
       <div className="text-lg leading-relaxed break-words">
         <ReactMarkdown
+          remarkPlugins={[remarkBreaks]}
           components={{
             // Styling overrides for Tailwind
             p: ({ node, ...props }) => (

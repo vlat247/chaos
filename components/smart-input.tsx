@@ -40,8 +40,8 @@ export function SmartInput({ onCapture }: SmartInputProps) {
 
         <button
           onClick={submit}
-          className="absolute right-3 bottom-3 p-2.5 rounded-full bg-white text-black hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!value.trim()}
+          className="absolute right-3 bottom-4 md:bottom-3 h-10 w-10 flex items-center justify-center rounded-full bg-white text-black shadow-lg transform-gpu transition-all duration-150 ease-out hover:scale-110 hover:shadow-xl hover:bg-white/90 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           <ArrowUp className="w-5 h-5" />
         </button>

@@ -34,7 +34,7 @@ export function SmartInput({ onCapture }: SmartInputProps) {
           onKeyDown={handleKeyDown}
           placeholder="Capture anything..."
           rows={1}
-          className="w-full px-6 py-4 pr-14 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder:text-white/40 text-lg font-sans focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.1)] resize-none overflow-y-auto max-h-[150px]"
+          className="w-full px-6 py-4 pr-14 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder:text-white/40 text-lg font-sans focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.1)] resize-none overflow-y-hidden max-h-[150px]"
           style={{ minHeight: "60px" }}
         />
 

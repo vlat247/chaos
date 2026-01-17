@@ -1,6 +1,7 @@
 // hooks/use-smart-input.ts
 import { useState, useEffect, useRef } from "react";
 import { TAGS } from "@/types/types";
+import { setDefaultCACertificates } from "tls";
 
 interface UseSmartInputProps {
   onCapture: (text: string) => void;
@@ -14,10 +15,24 @@ export function useSmartInput({ onCapture }: UseSmartInputProps) {
 
   // 1. Auto-resize Logic
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height =
-        textareaRef.current.scrollHeight + "px";
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // 1. Reset height to calculate correct scrollHeight
+      textarea.style.height = "auto";
+
+      // 2. Calculate new height
+      const newHeight = textarea.scrollHeight;
+
+      // 3. Apply height
+      textarea.style.height = `${newHeight}px`;
+
+      // 4. THE FIX: Only show scrollbar if we hit the limit
+      // We compare newHeight with your max-height (150px)
+      if (newHeight >= 150) {
+        textarea.style.overflowY = "auto";
+      } else {
+        textarea.style.overflowY = "hidden";
+      }
     }
   }, [value]);
 
@@ -87,6 +102,6 @@ export function useSmartInput({ onCapture }: UseSmartInputProps) {
     selectedIndex,
     textareaRef,
     handleKeyDown,
-    submit, // Expose this for the button click
+    submit,
   };
 }

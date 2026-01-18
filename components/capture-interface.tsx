@@ -25,7 +25,7 @@ export function CaptureInterface() {
   } = useNotes();
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-zinc-950">
+    <div className="relative w-full h-screen overflow-hidden bg-black/50">
       <div className="relative z-10 flex flex-col h-full">
         {/* ZONE A: Input Area */}
         <div className="flex-none h-[35vh] flex flex-col items-center justify-center px-4 relative">

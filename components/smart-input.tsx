@@ -33,7 +33,7 @@ const TAGS: Tag[] = [
   { name: "project", color: "text-indigo-500" },
 ];
 
-// --- Sub-Component: Tag Ribbon (Now Animated) ---
+// --- Sub-Component: Tag Ribbon ---
 function TagRibbon({ onSelect, onHoverChange }: TagRibbonProps) {
   const ribbonRef = useRef<HTMLDivElement>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -77,7 +77,7 @@ function TagRibbon({ onSelect, onHoverChange }: TagRibbonProps) {
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="absolute left-0 right-0 top-full mt-4 z-50 origin-top" // origin-top makes it grow from the input bar
+      className="absolute left-0 right-0 top-full mt-4 z-50 origin-top"
     >
       <div
         ref={ribbonRef}
@@ -91,7 +91,7 @@ function TagRibbon({ onSelect, onHoverChange }: TagRibbonProps) {
           return (
             <motion.button
               key={tag.name}
-              layout // Magic prop: animates layout changes automatically
+              layout
               onClick={() => onSelect(tag)}
               onMouseEnter={() => handleMouseEnter(index)}
               onMouseLeave={handleMouseLeave}
@@ -103,7 +103,7 @@ function TagRibbon({ onSelect, onHoverChange }: TagRibbonProps) {
                     : "text-white/70 hover:text-white hover:bg-white/10"
                 }
               `}
-              whileTap={{ scale: 0.95 }} // Little click feedback
+              whileTap={{ scale: 0.95 }}
               animate={{
                 scale: isHighlighted ? 1.05 : 1,
               }}
@@ -125,6 +125,8 @@ function TagRibbon({ onSelect, onHoverChange }: TagRibbonProps) {
 // --- Main Component ---
 export function SmartInput({ onCapture }: SmartInputProps) {
   const [showRibbon, setShowRibbon] = useState(false);
+  // FIX 1: Add state to track if we have text (Ref doesn't trigger re-render)
+  const [hasContent, setHasContent] = useState(false);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const hashStartRef = useRef<number | null>(null);
@@ -177,6 +179,13 @@ export function SmartInput({ onCapture }: SmartInputProps) {
 
   const handleInput = () => {
     const text = getTextContent();
+
+    // FIX 2: Check if button should be enabled (only update state if it changes)
+    const isNotEmpty = text.trim().length > 0;
+    if (isNotEmpty !== hasContent) {
+      setHasContent(isNotEmpty);
+    }
+
     const selection = window.getSelection();
     if (!selection) return;
 
@@ -232,6 +241,8 @@ export function SmartInput({ onCapture }: SmartInputProps) {
     setShowRibbon(false);
     hashStartRef.current = null;
     editorRef.current?.focus();
+    // Re-verify content after tag select
+    setHasContent(true);
   };
 
   const handleSubmit = () => {
@@ -239,6 +250,7 @@ export function SmartInput({ onCapture }: SmartInputProps) {
     if (text) {
       onCapture(text);
       setTextContent("");
+      setHasContent(false); // FIX 3: Disable button after submit
       setShowRibbon(false);
       hashStartRef.current = null;
     }
@@ -250,7 +262,7 @@ export function SmartInput({ onCapture }: SmartInputProps) {
       <motion.div
         layoutId="input-glow"
         className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/30 to-white/20 rounded-3xl blur-xl opacity-60 transition-opacity"
-        animate={{ opacity: showRibbon ? 0.9 : 0.6 }} // Glows brighter when ribbon is open
+        animate={{ opacity: showRibbon ? 0.9 : 0.6 }}
       />
 
       <div className="relative">
@@ -261,19 +273,18 @@ export function SmartInput({ onCapture }: SmartInputProps) {
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           className="w-full px-6 py-4 pr-14 rounded-4xl bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder:text-white/40 text-lg font-sans focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.1)] overflow-y-auto max-h-[150px] min-h-[60px]"
-          data-placeholder="Capture anything... Type # for tags"
+          data-placeholder="Capture anything..."
           style={{ whiteSpace: "pre-wrap", wordWrap: "break-word" }}
         />
 
         <button
           onClick={handleSubmit}
-          disabled={!editorRef.current?.textContent?.trim()}
-          className="absolute right-3 bottom-4 md:bottom-3 h-10 w-10 flex items-center justify-center rounded-full bg-white text-black shadow-lg transform-gpu transition-all duration-150 ease-out hover:scale-110 hover:shadow-xl hover:bg-white/90 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          disabled={!hasContent}
+          className="absolute right-3 bottom-3 md:bottom-3 h-10 w-10 flex items-center justify-center rounded-full bg-white text-black shadow-lg transform-gpu transition-all duration-150 ease-out hover:scale-110 hover:shadow-xl hover:bg-white/90 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           <ArrowUp className="w-5 h-5" />
         </button>
 
-        {/* AnimatePresence allows the ribbon to animate out when showRibbon becomes false */}
         <AnimatePresence>
           {showRibbon && (
             <TagRibbon

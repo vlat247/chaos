@@ -1,44 +1,67 @@
 "use client";
 
-import React, { useState, useRef, KeyboardEvent, WheelEvent } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
-import { motion, AnimatePresence, Variants } from "framer-motion";
 
 // --- Types ---
 interface Tag {
   name: string;
-  color: string;
 }
 
 interface TagRibbonProps {
+  tags: Tag[];
   onSelect: (tag: Tag) => void;
   onHoverChange: (index: number | null, isPreview: boolean) => void;
+  onClickOutside: () => void;
 }
 
-export interface SmartInputProps {
+interface SmartInputProps {
   onCapture: (text: string) => void;
 }
 
-// --- Configuration ---
-const TAGS: Tag[] = [
-  { name: "work", color: "text-blue-500" },
-  { name: "urgent", color: "text-red-500" },
-  { name: "personal", color: "text-purple-500" },
-  { name: "ideas", color: "text-yellow-500" },
-  { name: "meeting", color: "text-green-500" },
-  { name: "todo", color: "text-orange-500" },
-  { name: "important", color: "text-pink-500" },
-  { name: "later", color: "text-gray-500" },
-  { name: "research", color: "text-cyan-500" },
-  { name: "project", color: "text-indigo-500" },
+// Tag configuration
+const INITIAL_TAGS: Tag[] = [
+  { name: "work" },
+  { name: "personal" },
+  { name: "ideas" },
+  { name: "todo" },
+  { name: "important" },
+  { name: "later" },
+  { name: "explore" },
 ];
 
-// --- Sub-Component: Tag Ribbon ---
-function TagRibbon({ onSelect, onHoverChange }: TagRibbonProps) {
+// --- Components ---
+
+function TagRibbon({
+  tags,
+  onSelect,
+  onHoverChange,
+  onClickOutside,
+}: TagRibbonProps) {
+  // Explicitly type the Refs as HTMLDivElements
   const ribbonRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const handleWheel = (e: WheelEvent<HTMLDivElement>) => {
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      // "as Node" assertion is required because e.target is technically EventTarget
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        onClickOutside();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClickOutside]);
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    // Prevent default browser swipe navigation
+    // Note: e.preventDefault() on passive events (like scroll) can be tricky in React 18+,
+    // but works here for non-passive synthetic events.
     if (ribbonRef.current) {
       ribbonRef.current.scrollLeft += e.deltaY;
     }
@@ -54,84 +77,73 @@ function TagRibbon({ onSelect, onHoverChange }: TagRibbonProps) {
     onHoverChange(null, false);
   };
 
-  // Animation Variants
-  const containerVariants: Variants = {
-    hidden: { opacity: 0, y: -10, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { type: "spring", stiffness: 300, damping: 20 },
-    },
-    exit: {
-      opacity: 0,
-      y: -10,
-      scale: 0.95,
-      transition: { duration: 0.15 },
-    },
-  };
-
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      className="absolute left-0 right-0 top-full mt-4 z-50 origin-top"
+    <div
+      ref={containerRef}
+      className="absolute left-0 right-0 top-full mt-4 z-50"
     >
       <div
         ref={ribbonRef}
         onWheel={handleWheel}
-        className="flex flex-row gap-2 overflow-x-auto px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.15)] scrollbar-hide"
+        className="flex flex-row gap-2 overflow-x-auto px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.15)] scrollbar-hide animate-slideUp"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {TAGS.map((tag, index) => {
+        {tags.map((tag, index) => {
           const isHighlighted = index === hoveredIndex;
 
           return (
-            <motion.button
+            <button
               key={tag.name}
-              layout
               onClick={() => onSelect(tag)}
               onMouseEnter={() => handleMouseEnter(index)}
               onMouseLeave={handleMouseLeave}
+              type="button"
               className={`
-                px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-colors duration-200 relative
+                px-4 py-2 rounded-xl font-medium whitespace-nowrap transition-all duration-200
                 ${
                   isHighlighted
-                    ? `${tag.color} bg-white/20 shadow-lg`
+                    ? "text-white bg-white/20 scale-105 shadow-lg"
                     : "text-white/70 hover:text-white hover:bg-white/10"
                 }
               `}
-              whileTap={{ scale: 0.95 }}
-              animate={{
-                scale: isHighlighted ? 1.05 : 1,
-              }}
             >
               #{tag.name}
-            </motion.button>
+            </button>
           );
         })}
       </div>
+      {/* styled-jsx is specific to Next.js; if using generic React, move to CSS module */}
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slideUp {
+          animation: slideUp 0.2s ease-out;
+        }
       `}</style>
-    </motion.div>
+    </div>
   );
 }
 
-// --- Main Component ---
 export function SmartInput({ onCapture }: SmartInputProps) {
   const [showRibbon, setShowRibbon] = useState(false);
-  // FIX 1: Add state to track if we have text (Ref doesn't trigger re-render)
+  const [tags, setTags] = useState<Tag[]>(INITIAL_TAGS);
   const [hasContent, setHasContent] = useState(false);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const hashStartRef = useRef<number | null>(null);
 
-  const getTextContent = () => {
+  const getTextContent = (): string => {
     return editorRef.current?.textContent || "";
   };
 
@@ -144,58 +156,58 @@ export function SmartInput({ onCapture }: SmartInputProps) {
 
   const moveCursorToEnd = () => {
     if (!editorRef.current) return;
+
     const range = document.createRange();
     const sel = window.getSelection();
+
     if (editorRef.current.childNodes.length > 0) {
       range.selectNodeContents(editorRef.current);
-      range.collapse(false);
-      sel?.removeAllRanges();
-      sel?.addRange(range);
+      range.collapse(false); // false means collapse to end
+
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
     }
   };
 
-  const applyHashColor = (
-    color: string,
-    tagName: string | null,
-    isPreview: boolean
-  ) => {
+  const applyHashPreview = (tagName: string | null, isPreview: boolean) => {
     if (!editorRef.current || hashStartRef.current === null) return;
 
     const text = getTextContent();
     const beforeHash = text.substring(0, hashStartRef.current);
     const afterHash = text.substring(hashStartRef.current);
-
-    const match = afterHash.match(/^#\w*/);
-    const hashWord = match ? match[0] : "#";
+    const hashWord = afterHash.match(/^#\w*/)?.[0] || "#";
     const remaining = afterHash.substring(hashWord.length);
 
+    // Note: Manipulating innerHTML directly in React is usually an anti-pattern,
+    // but acceptable here for a lightweight contentEditable highlighter.
     if (isPreview && tagName) {
-      editorRef.current.innerHTML = `${beforeHash}<span class="${color}">#${tagName}</span><span class="text-white/30">${remaining}</span>`;
+      editorRef.current.innerHTML = `${beforeHash}<span class="text-white">#${tagName}</span><span class="text-white/30">${remaining}</span>`;
     } else {
-      editorRef.current.innerHTML = `${beforeHash}<span class="${color}">${hashWord}</span>${remaining}`;
+      editorRef.current.innerHTML = `${beforeHash}<span class="text-white">${hashWord}</span>${remaining}`;
     }
     moveCursorToEnd();
   };
 
   const handleInput = () => {
     const text = getTextContent();
-
-    // FIX 2: Check if button should be enabled (only update state if it changes)
     const isNotEmpty = text.trim().length > 0;
+
     if (isNotEmpty !== hasContent) {
       setHasContent(isNotEmpty);
     }
 
-    const selection = window.getSelection();
-    if (!selection) return;
+    const sel = window.getSelection();
+    const cursorPos = sel?.anchorOffset || 0;
 
-    const cursorPos = selection.anchorOffset;
-
+    // Logic to detect if we are typing a hash
     const beforeCursor = text.substring(0, cursorPos);
     const lastHashIndex = beforeCursor.lastIndexOf("#");
 
     if (lastHashIndex !== -1) {
       const afterHash = text.substring(lastHashIndex + 1, cursorPos);
+      // Only show ribbon if there are no spaces after hash and length is reasonable
       if (!afterHash.includes(" ") && afterHash.length < 20) {
         setShowRibbon(true);
         hashStartRef.current = lastHashIndex;
@@ -211,22 +223,56 @@ export function SmartInput({ onCapture }: SmartInputProps) {
 
   const handleHoverChange = (index: number | null, isPreview: boolean) => {
     if (index !== null) {
-      const tag = TAGS[index];
-      applyHashColor(tag.color, tag.name, isPreview);
+      const tag = tags[index];
+      applyHashPreview(tag.name, isPreview);
     } else {
-      applyHashColor("text-white", null, false);
+      applyHashPreview(null, false);
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (showRibbon && e.key === "Escape") {
       e.preventDefault();
-      setShowRibbon(false);
-      hashStartRef.current = null;
+      handleCloseRibbon();
+    } else if (showRibbon && e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      // Create custom tag from typed text
+      const text = getTextContent();
+
+      // Safety check for hashStartRef
+      if (hashStartRef.current !== null) {
+        const afterHash = text.substring(hashStartRef.current);
+        const customTagMatch = afterHash.match(/^#(\w+)/);
+
+        if (customTagMatch) {
+          const customTagName = customTagMatch[1];
+          const newTag: Tag = { name: customTagName };
+
+          // Add to tags if doesn't exist
+          if (!tags.some((t) => t.name === customTagName)) {
+            setTags((prev) => [...prev, newTag]);
+          }
+
+          handleTagSelect(newTag);
+        }
+      }
     } else if (!showRibbon && e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
+  };
+
+  const handleCloseRibbon = () => {
+    if (hashStartRef.current !== null) {
+      const text = getTextContent();
+      const beforeHash = text.substring(0, hashStartRef.current);
+      const afterHash = text.substring(hashStartRef.current);
+      const remaining = afterHash.replace(/^#\w*/, "#");
+
+      setTextContent(`${beforeHash}${remaining}`);
+    }
+    setShowRibbon(false);
+    hashStartRef.current = null;
   };
 
   const handleTagSelect = (tag: Tag) => {
@@ -240,9 +286,8 @@ export function SmartInput({ onCapture }: SmartInputProps) {
     }
     setShowRibbon(false);
     hashStartRef.current = null;
-    editorRef.current?.focus();
-    // Re-verify content after tag select
     setHasContent(true);
+    editorRef.current?.focus();
   };
 
   const handleSubmit = () => {
@@ -250,7 +295,7 @@ export function SmartInput({ onCapture }: SmartInputProps) {
     if (text) {
       onCapture(text);
       setTextContent("");
-      setHasContent(false); // FIX 3: Disable button after submit
+      setHasContent(false);
       setShowRibbon(false);
       hashStartRef.current = null;
     }
@@ -258,48 +303,48 @@ export function SmartInput({ onCapture }: SmartInputProps) {
 
   return (
     <div className="relative w-full max-w-2xl group">
-      {/* Background Glow */}
-      <motion.div
-        layoutId="input-glow"
-        className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/30 to-white/20 rounded-3xl blur-xl opacity-60 transition-opacity"
-        animate={{ opacity: showRibbon ? 0.9 : 0.6 }}
-      />
+      {/* Glow Effect */}
+      <div className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/30 to-white/20 rounded-3xl blur-xl opacity-60 group-focus-within:opacity-80 transition-opacity" />
 
       <div className="relative">
         <div
           ref={editorRef}
           contentEditable
-          suppressContentEditableWarning={true}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           className="w-full px-6 py-4 pr-14 rounded-4xl bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder:text-white/40 text-lg font-sans focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.1)] overflow-y-auto max-h-[150px] min-h-[60px]"
           data-placeholder="Capture anything..."
-          style={{ whiteSpace: "pre-wrap", wordWrap: "break-word" }}
+          // Suppress React warning for contentEditable with dynamic content
+          suppressContentEditableWarning={true}
+          style={{
+            whiteSpace: "pre-wrap",
+            wordWrap: "break-word",
+          }}
         />
 
         <button
           onClick={handleSubmit}
           disabled={!hasContent}
+          type="button"
           className="absolute right-3 bottom-3 md:bottom-3 h-10 w-10 flex items-center justify-center rounded-full bg-white text-black shadow-lg transform-gpu transition-all duration-150 ease-out hover:scale-110 hover:shadow-xl hover:bg-white/90 active:scale-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           <ArrowUp className="w-5 h-5" />
         </button>
 
-        <AnimatePresence>
-          {showRibbon && (
-            <TagRibbon
-              onSelect={handleTagSelect}
-              onHoverChange={handleHoverChange}
-            />
-          )}
-        </AnimatePresence>
+        {showRibbon && (
+          <TagRibbon
+            tags={tags}
+            onSelect={handleTagSelect}
+            onHoverChange={handleHoverChange}
+            onClickOutside={handleCloseRibbon}
+          />
+        )}
       </div>
 
       <style jsx>{`
         [contenteditable]:empty:before {
           content: attr(data-placeholder);
           color: rgba(255, 255, 255, 0.4);
-          pointer-events: none;
         }
       `}</style>
     </div>

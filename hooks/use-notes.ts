@@ -1,31 +1,26 @@
-// hooks/use-notes.ts
 "use client";
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Note } from "@/types/types";
 
 export function useNotes() {
-  // Указываем, что notes - это массив паспортов Note (<Note[]>)
   const [notes, setNotes] = useState<Note[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  // content должен быть строкой (string)
   const addNote = (content: string) => {
     const newNote: Note = {
       id: Date.now().toString(),
       content,
       timestamp: new Date(),
+      isPinned: false,
     };
     setNotes((prev) => [newNote, ...prev]);
   };
 
-  // id должен быть строкой (string)
   const deleteNote = (id: string) => {
     setNotes((prev) => prev.filter((note) => note.id !== id));
   };
 
-  // note должен соответствовать интерфейсу Note
   const startEditing = (note: Note) => {
     setEditingId(note.id);
     setEditValue(note.content);
@@ -36,7 +31,6 @@ export function useNotes() {
     setEditValue("");
   };
 
-  // id - строка
   const saveEdit = (id: string) => {
     setNotes((prev) =>
       prev.map((note) =>
@@ -47,12 +41,27 @@ export function useNotes() {
     setEditValue("");
   };
 
+  const togglePin = (id: string) => {
+    setNotes((prev) =>
+      prev.map((note) =>
+        note.id === id ? { ...note, isPinned: !note.isPinned } : note
+      )
+    );
+  };
+
   const clearAllNotes = () => {
     setNotes([]);
   };
 
+  // Sort notes: pinned first, then by timestamp
+  const sortedNotes = [...notes].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return b.timestamp.getTime() - a.timestamp.getTime();
+  });
+
   return {
-    notes,
+    notes: sortedNotes,
     editingId,
     editValue,
     setEditValue,
@@ -61,6 +70,7 @@ export function useNotes() {
     startEditing,
     cancelEdit,
     saveEdit,
+    togglePin,
     clearAllNotes,
   };
 }

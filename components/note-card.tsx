@@ -1,5 +1,5 @@
-import { X } from "lucide-react";
-import ReactMarkdown from "react-markdown"; // 1. Import library
+import { X, Pin } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Note } from "@/types/types";
 import remarkBreaks from "remark-breaks";
 
@@ -12,6 +12,7 @@ interface NoteCardProps {
   onCancel: () => void;
   onDelete: () => void;
   onStartEdit: () => void;
+  onTogglePin: () => void;
 }
 
 export function NoteCard({
@@ -23,18 +24,32 @@ export function NoteCard({
   onCancel,
   onDelete,
   onStartEdit,
+  onTogglePin,
 }: NoteCardProps) {
+  const formatDate = (date: Date) => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   if (isEditing) {
     return (
-      <div className="flex flex-col gap-2 p-4 rounded-xl bg-white/5 border border-white/10">
-        {/* Changed Input to Textarea to support multi-line Markdown editing */}
+      <div className="w-full p-4 rounded-xl bg-white/10 border border-white/20">
         <textarea
           autoFocus
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault(); // Prevent new line on Enter
+              e.preventDefault();
               onSave();
             }
             if (e.key === "Escape") onCancel();
@@ -52,24 +67,59 @@ export function NoteCard({
   return (
     <div
       onDoubleClick={onStartEdit}
-      className="group relative w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white/90 hover:bg-white/10 transition-colors"
+      className={`group relative w-full p-4 rounded-xl text-white/90 hover:bg-white/10 transition-all ${
+        note.isPinned
+          ? "bg-white/10 border-2 border-amber-500/50 shadow-lg shadow-amber-500/10"
+          : "bg-white/5 border border-white/10"
+      }`}
     >
-      <button
-        onClick={(e) => {
-          e.stopPropagation(); // Prevent triggering edit when deleting
-          onDelete();
-        }}
-        className="absolute top-2 right-2 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-all z-10"
-      >
-        <X className="w-4 h-4 text-white/70 hover:text-white" />
-      </button>
+      {/* Bottom Left: Time */}
+      <div className="absolute bottom-3 left-4 text-xs text-white/40 font-mono">
+        {formatTime(note.timestamp)}
+      </div>
 
-      {/* 2. Markdown Rendering Container */}
-      <div className="text-lg leading-relaxed break-words">
+      {/* Bottom Right: Date */}
+      <div className="absolute bottom-3 right-4 text-xs text-white/40 font-mono">
+        {formatDate(note.timestamp)}
+      </div>
+
+      {/* Right Angle: Pin & Delete Buttons */}
+      <div className="absolute top-2 right-2 flex gap-1 z-10">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePin();
+          }}
+          className={`p-1.5 rounded-md transition-all ${
+            note.isPinned
+              ? "bg-amber-500/20 text-amber-400 opacity-100"
+              : "opacity-0 group-hover:opacity-100 hover:bg-white/10 text-white/70 hover:text-white"
+          }`}
+          title={note.isPinned ? "Unpin note" : "Pin note"}
+        >
+          <Pin
+            className={`w-4 h-4 transition-transform ${
+              note.isPinned ? "fill-current" : ""
+            }`}
+          />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-all"
+        >
+          <X className="w-4 h-4 text-white/70 hover:text-white" />
+        </button>
+      </div>
+
+      {/* Content with proper spacing */}
+      <div className="text-lg leading-relaxed break-words pb-8">
         <ReactMarkdown
           remarkPlugins={[remarkBreaks]}
           components={{
-            // Styling overrides for Tailwind
             p: ({ node, ...props }) => (
               <p className="mb-2 last:mb-0" {...props} />
             ),
@@ -93,7 +143,6 @@ export function NoteCard({
             ol: ({ node, ...props }) => (
               <ol className="list-decimal pl-5 space-y-1 my-2" {...props} />
             ),
-            // Code block styling (optional addition)
             code: ({ node, ...props }) => (
               <code
                 className="bg-white/10 rounded px-1 py-0.5 text-sm font-mono text-pink-300"
@@ -105,13 +154,6 @@ export function NoteCard({
           {note.content}
         </ReactMarkdown>
       </div>
-
-      <span className="block mt-3 text-xs text-white/30 font-mono">
-        {note.timestamp.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </span>
     </div>
   );
 }

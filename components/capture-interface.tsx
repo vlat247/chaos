@@ -1,16 +1,14 @@
 "use client";
-
 import { useState } from "react";
 import { Settings } from "lucide-react";
 import { useNotes } from "@/hooks/use-notes";
 import { SmartInput } from "./smart-input";
 import { NoteCard } from "./note-card";
-import { SettingsSidebar } from "./settings-sidebar"; // You create this similarly
+import { SettingsSidebar } from "./settings-sidebar";
 
 export function CaptureInterface() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // The hook logic remains, but now it feeds cleanly into child components
   const {
     notes,
     editingId,
@@ -21,6 +19,7 @@ export function CaptureInterface() {
     startEditing,
     cancelEdit,
     saveEdit,
+    togglePin,
     clearAllNotes,
   } = useNotes();
 
@@ -35,9 +34,7 @@ export function CaptureInterface() {
           >
             <Settings className="w-5 h-5" />
           </button>
-
           <SmartInput onCapture={addNote} />
-
           {notes.length === 0 && (
             <div className="mt-8 text-white/30 text-sm animate-pulse">
               Press{" "}
@@ -63,6 +60,7 @@ export function CaptureInterface() {
                 onCancel={cancelEdit}
                 onDelete={() => deleteNote(note.id)}
                 onStartEdit={() => startEditing(note)}
+                onTogglePin={() => togglePin(note.id)}
               />
             ))}
           </div>
@@ -70,11 +68,10 @@ export function CaptureInterface() {
       </div>
 
       {/* Sidebar Overlay */}
-
       <SettingsSidebar
-        isOpen={sidebarOpen} // State from parent
-        onClose={() => setSidebarOpen(false)} // Control from parent
-        onClear={clearAllNotes} // Function from hook
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onClear={clearAllNotes}
       />
     </div>
   );

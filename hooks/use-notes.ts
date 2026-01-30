@@ -1,24 +1,101 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Note } from "@/types/types";
+
+interface DbNote {
+  id: number;
+  content: string;
+  is_pinned: boolean;
+  created_at: string;
+}
+
+function mapDbNoteToNote(dbNote: DbNote): Note {
+  return {
+    id: String(dbNote.id),
+    content: dbNote.content,
+    timestamp: new Date(dbNote.created_at),
+    isPinned: dbNote.is_pinned,
+  };
+}
 
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const addNote = (content: string) => {
-    const newNote: Note = {
-      id: Date.now().toString(),
+  // Fetch notes from the database on mount
+  const fetchNotes = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notes");
+      if (res.ok) {
+        const data: DbNote[] = await res.json();
+        setNotes(data.map(mapDbNoteToNote));
+      }
+    } catch (error) {
+      console.error("Failed to fetch notes:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const addNote = async (content: string) => {
+    // Optimistic update
+    const tempNote: Note = {
+      id: `temp-${Date.now()}`,
       content,
       timestamp: new Date(),
       isPinned: false,
     };
-    setNotes((prev) => [newNote, ...prev]);
+    setNotes((prev) => [tempNote, ...prev]);
+
+    try {
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, is_pinned: false }),
+      });
+
+      if (res.ok) {
+        const savedNote: DbNote = await res.json();
+        // Replace temp note with saved note
+        setNotes((prev) =>
+          prev.map((n) => (n.id === tempNote.id ? mapDbNoteToNote(savedNote) : n))
+        );
+      } else {
+        // Rollback on error
+        setNotes((prev) => prev.filter((n) => n.id !== tempNote.id));
+        console.error("Failed to save note");
+      }
+    } catch (error) {
+      // Rollback on error
+      setNotes((prev) => prev.filter((n) => n.id !== tempNote.id));
+      console.error("Failed to save note:", error);
+    }
   };
 
-  const deleteNote = (id: string) => {
+  const deleteNote = async (id: string) => {
+    const noteToDelete = notes.find((n) => n.id === id);
+    // Optimistic update
     setNotes((prev) => prev.filter((note) => note.id !== id));
+
+    try {
+      const res = await fetch(`/api/notes/${id}`, { method: "DELETE" });
+      if (!res.ok && noteToDelete) {
+        // Rollback on error
+        setNotes((prev) => [...prev, noteToDelete]);
+        console.error("Failed to delete note");
+      }
+    } catch (error) {
+      if (noteToDelete) {
+        setNotes((prev) => [...prev, noteToDelete]);
+      }
+      console.error("Failed to delete note:", error);
+    }
   };
 
   const startEditing = (note: Note) => {
@@ -31,7 +108,9 @@ export function useNotes() {
     setEditValue("");
   };
 
-  const saveEdit = (id: string) => {
+  const saveEdit = async (id: string) => {
+    const originalNote = notes.find((n) => n.id === id);
+    // Optimistic update
     setNotes((prev) =>
       prev.map((note) =>
         note.id === id ? { ...note, content: editValue } : note
@@ -39,18 +118,85 @@ export function useNotes() {
     );
     setEditingId(null);
     setEditValue("");
+
+    try {
+      const res = await fetch(`/api/notes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editValue }),
+      });
+
+      if (!res.ok && originalNote) {
+        // Rollback on error
+        setNotes((prev) =>
+          prev.map((n) => (n.id === id ? originalNote : n))
+        );
+        console.error("Failed to update note");
+      }
+    } catch (error) {
+      if (originalNote) {
+        setNotes((prev) =>
+          prev.map((n) => (n.id === id ? originalNote : n))
+        );
+      }
+      console.error("Failed to update note:", error);
+    }
   };
 
-  const togglePin = (id: string) => {
+  const togglePin = async (id: string) => {
+    const note = notes.find((n) => n.id === id);
+    if (!note) return;
+
+    const newPinState = !note.isPinned;
+    // Optimistic update
     setNotes((prev) =>
-      prev.map((note) =>
-        note.id === id ? { ...note, isPinned: !note.isPinned } : note
+      prev.map((n) =>
+        n.id === id ? { ...n, isPinned: newPinState } : n
       )
     );
+
+    try {
+      const res = await fetch(`/api/notes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_pinned: newPinState }),
+      });
+
+      if (!res.ok) {
+        // Rollback on error
+        setNotes((prev) =>
+          prev.map((n) =>
+            n.id === id ? { ...n, isPinned: !newPinState } : n
+          )
+        );
+        console.error("Failed to toggle pin");
+      }
+    } catch (error) {
+      setNotes((prev) =>
+        prev.map((n) =>
+          n.id === id ? { ...n, isPinned: !newPinState } : n
+        )
+      );
+      console.error("Failed to toggle pin:", error);
+    }
   };
 
-  const clearAllNotes = () => {
+  const clearAllNotes = async () => {
+    const oldNotes = [...notes];
+    // Optimistic update
     setNotes([]);
+
+    try {
+      const res = await fetch("/api/notes", { method: "DELETE" });
+      if (!res.ok) {
+        // Rollback on error
+        setNotes(oldNotes);
+        console.error("Failed to clear notes");
+      }
+    } catch (error) {
+      setNotes(oldNotes);
+      console.error("Failed to clear notes:", error);
+    }
   };
 
   // Sort notes: pinned first, then by timestamp
@@ -62,6 +208,7 @@ export function useNotes() {
 
   return {
     notes: sortedNotes,
+    isLoading,
     editingId,
     editValue,
     setEditValue,

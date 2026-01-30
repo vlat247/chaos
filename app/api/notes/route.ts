@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET() {
+  const supabase = await createSupabaseServerClient();
+  
+  // Get current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { data, error } = await supabase
     .from("notes")
     .select("*")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -12,6 +21,14 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const supabase = await createSupabaseServerClient();
+  
+  // Get current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json();
   const content = String(body.content ?? "").trim();
   const is_pinned = Boolean(body.is_pinned ?? false);
@@ -20,7 +37,7 @@ export async function POST(req: Request) {
 
   const { data, error } = await supabase
     .from("notes")
-    .insert([{ content, is_pinned }])
+    .insert([{ content, is_pinned, user_id: user.id }])
     .select("*")
     .single();
 
@@ -29,7 +46,18 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE() {
-  const { error } = await supabase.from("notes").delete().neq("id", 0);
+  const supabase = await createSupabaseServerClient();
+  
+  // Get current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { error } = await supabase
+    .from("notes")
+    .delete()
+    .eq("user_id", user.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });

@@ -1,15 +1,27 @@
 "use client";
-import { useState } from "react";
-import { Settings, LogOut } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { Settings, LogOut, List } from "lucide-react";
 import { useNotes } from "@/hooks/use-notes";
 import { useAuth } from "@/hooks/use-auth";
 import { SmartInput } from "./smart-input";
 import { NoteCard } from "./note-card";
 import { SettingsSidebar } from "./settings-sidebar";
+import { NotesSidebar } from "./notes-sidebar";
 import { AuthModal } from "./auth-modal";
 
 export function CaptureInterface() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notesSidebarOpen, setNotesSidebarOpen] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const handleNoteClick = useCallback((noteId: string) => {
+    const el = document.getElementById(`note-${noteId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-white/40");
+      setTimeout(() => el.classList.remove("ring-2", "ring-white/40"), 1500);
+    }
+  }, []);
 
   const {
     notes,
@@ -53,6 +65,17 @@ export function CaptureInterface() {
       <div className="relative z-10 flex flex-col h-full">
         {/* ZONE A: Input Area */}
         <div className="flex-none h-[35vh] flex flex-col items-center justify-center px-4 relative">
+          {/* Top left: notes sidebar toggle */}
+          <div className="absolute top-6 left-6">
+            <button
+              onClick={() => setNotesSidebarOpen(true)}
+              className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              title="Browse notes by tag"
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
+
           {/* Top right buttons */}
           <div className="absolute top-6 right-6 flex items-center gap-2">
             <button
@@ -82,27 +105,36 @@ export function CaptureInterface() {
         </div>
 
         {/* ZONE B: List Area */}
-        <div className="flex-1 overflow-y-auto px-4 pt-8 pb-12">
+        <div ref={listRef} className="flex-1 overflow-y-auto px-4 pt-8 pb-12">
           <div className="w-full max-w-2xl mx-auto space-y-4">
             {notes.map((note) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                isEditing={editingId === note.id}
-                editValue={editValue}
-                setEditValue={setEditValue}
-                onSave={() => saveEdit(note.id)}
-                onCancel={cancelEdit}
-                onDelete={() => deleteNote(note.id)}
-                onStartEdit={() => startEditing(note)}
-                onTogglePin={() => togglePin(note.id)}
-              />
+              <div key={note.id} id={`note-${note.id}`} className="transition-all duration-300 rounded-xl">
+                <NoteCard
+                  note={note}
+                  isEditing={editingId === note.id}
+                  editValue={editValue}
+                  setEditValue={setEditValue}
+                  onSave={() => saveEdit(note.id)}
+                  onCancel={cancelEdit}
+                  onDelete={() => deleteNote(note.id)}
+                  onStartEdit={() => startEditing(note)}
+                  onTogglePin={() => togglePin(note.id)}
+                />
+              </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Sidebar Overlay */}
+      {/* Notes Sidebar */}
+      <NotesSidebar
+        isOpen={notesSidebarOpen}
+        onClose={() => setNotesSidebarOpen(false)}
+        notes={notes}
+        onNoteClick={handleNoteClick}
+      />
+
+      {/* Settings Sidebar */}
       <SettingsSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

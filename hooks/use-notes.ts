@@ -7,6 +7,7 @@ interface DbNote {
   content: string;
   is_pinned: boolean;
   created_at: string;
+  image_url?: string;
 }
 
 function mapDbNoteToNote(dbNote: DbNote): Note {
@@ -15,6 +16,7 @@ function mapDbNoteToNote(dbNote: DbNote): Note {
     content: dbNote.content,
     timestamp: new Date(dbNote.created_at),
     isPinned: dbNote.is_pinned,
+    imageUrl: dbNote.image_url,
   };
 }
 
@@ -36,6 +38,7 @@ export function useNotes(isAuthenticated: boolean) {
       const res = await fetch("/api/notes");
       if (res.ok) {
         const data: DbNote[] = await res.json();
+        console.log("Fetched Notes from DB:", data); // Diagnostic Log
         setNotes(data.map(mapDbNoteToNote));
       }
     } catch (error) {
@@ -49,21 +52,22 @@ export function useNotes(isAuthenticated: boolean) {
     fetchNotes();
   }, [fetchNotes, isAuthenticated]);
 
-  const addNote = async (content: string) => {
+  const addNote = async (content: string, imageUrl?: string) => {
     // Optimistic update
     const tempNote: Note = {
       id: `temp-${Date.now()}`,
       content,
       timestamp: new Date(),
       isPinned: false,
+      imageUrl,
     };
     setNotes((prev) => [tempNote, ...prev]);
-
+ 
     try {
       const res = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, is_pinned: false }),
+        body: JSON.stringify({ content, is_pinned: false, image_url: imageUrl }),
       });
 
       if (res.ok) {

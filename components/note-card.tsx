@@ -2,6 +2,7 @@ import { X, Pin } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Note } from "@/types/types";
 import remarkBreaks from "remark-breaks";
+import { useRef, useEffect } from "react";
 
 interface NoteCardProps {
   note: Note;
@@ -26,6 +27,20 @@ export function NoteCard({
   onStartEdit,
   onTogglePin,
 }: NoteCardProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onCancel();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isEditing, onCancel]);
   const formatDate = (date: Date) => {
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -42,7 +57,10 @@ export function NoteCard({
 
   if (isEditing) {
     return (
-      <div className="w-full p-4 rounded-xl bg-white/10 border border-white/20">
+      <div 
+        ref={containerRef}
+        className="w-full p-4 rounded-xl bg-white/10 border border-white/20"
+      >
         <textarea
           autoFocus
           value={editValue}
@@ -117,6 +135,19 @@ export function NoteCard({
 
       {/* Content with proper spacing */}
       <div className="text-lg leading-relaxed break-words pb-8">
+        {note.imageUrl && (
+          <div className="mb-4 rounded-lg overflow-hidden border border-white/10 bg-black/20">
+            {console.log(`Rendering Image for note ${note.id}:`, note.imageUrl)}
+            <img
+              src={note.imageUrl}
+              alt="Attached image"
+              className="w-full h-auto max-h-[400px] object-cover hover:scale-[1.02] transition-transform duration-500"
+              onError={(e) => {
+                console.error(`Failed to load image for note ${note.id}:`, note.imageUrl);
+              }}
+            />
+          </div>
+        )}
         <ReactMarkdown
           remarkPlugins={[remarkBreaks]}
           components={{

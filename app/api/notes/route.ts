@@ -32,12 +32,13 @@ export async function POST(req: Request) {
   const body = await req.json();
   const content = String(body.content ?? "").trim();
   const is_pinned = Boolean(body.is_pinned ?? false);
+  const image_url = body.image_url ? String(body.image_url) : null;
 
   if (!content) return NextResponse.json({ error: "content required" }, { status: 400 });
 
   const { data, error } = await supabase
     .from("notes")
-    .insert([{ content, is_pinned, user_id: user.id }])
+    .insert([{ content, is_pinned, image_url, user_id: user.id }])
     .select("*")
     .single();
 

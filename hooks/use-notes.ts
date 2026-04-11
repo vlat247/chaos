@@ -38,7 +38,6 @@ export function useNotes(isAuthenticated: boolean) {
       const res = await fetch("/api/notes");
       if (res.ok) {
         const data: DbNote[] = await res.json();
-        console.log("Fetched Notes from DB:", data); // Diagnostic Log
         setNotes(data.map(mapDbNoteToNote));
       }
     } catch (error) {

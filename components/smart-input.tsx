@@ -372,8 +372,7 @@ export function SmartInput({ onCapture }: SmartInputProps) {
       const { data: { publicUrl } } = supabase.storage
         .from("notes")
         .getPublicUrl(filePath);
- 
-      console.log("Upload Success! Public URL:", publicUrl); // Diagnostic Log
+  
       return publicUrl;
     } catch (error: any) {
       console.error("Error uploading image:", error);
@@ -398,7 +397,6 @@ export function SmartInput({ onCapture }: SmartInputProps) {
         }
       }
  
-      console.log("Submitting Note with Image URL:", imageUrl); // Diagnostic Log
       onCapture(text, imageUrl);
       setTextContent("");
       setHasContent(false);

@@ -137,7 +137,6 @@ export function NoteCard({
       <div className="text-lg leading-relaxed break-words pb-8">
         {note.imageUrl && (
           <div className="mb-4 rounded-lg overflow-hidden border border-white/10 bg-black/20">
-            {console.log(`Rendering Image for note ${note.id}:`, note.imageUrl)}
             <img
               src={note.imageUrl}
               alt="Attached image"

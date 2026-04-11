@@ -8,11 +8,28 @@ import { NoteCard } from "./note-card";
 import { SettingsSidebar } from "./settings-sidebar";
 import { NotesSidebar } from "./notes-sidebar";
 import { AuthModal } from "./auth-modal";
+import { SearchModal } from "./search-modal";
+import { Search } from "lucide-react";
+import { useEffect } from "react";
 
 export function CaptureInterface() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notesSidebarOpen, setNotesSidebarOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
   const handleNoteClick = useCallback((noteId: string) => {
     const el = document.getElementById(`note-${noteId}`);
@@ -85,6 +102,13 @@ export function CaptureInterface() {
               <LogOut className="w-5 h-5" />
             </button>
             <button
+              onClick={() => setSearchOpen(true)}
+              className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              title="Search notes (⌘K)"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             >
@@ -138,6 +162,14 @@ export function CaptureInterface() {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onClear={clearAllNotes}
+      />
+
+      {/* Search Modal */}
+      <SearchModal
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        notes={notes}
+        onSelect={handleNoteClick}
       />
     </div>
   );

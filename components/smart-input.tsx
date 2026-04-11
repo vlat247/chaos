@@ -85,7 +85,7 @@ function TagRibbon({
       <div
         ref={ribbonRef}
         onWheel={handleWheel}
-        className="flex flex-row gap-2 overflow-x-auto px-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.15)] scrollbar-hide animate-slideUp"
+        className="flex flex-row gap-2 overflow-x-auto px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.15)] scrollbar-hide animate-slideUp transform-gpu"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {tags.map((tag, index) => {
@@ -304,7 +304,7 @@ export function SmartInput({ onCapture }: SmartInputProps) {
   return (
     <div className="relative w-full max-w-2xl group">
       {/* Glow Effect */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/30 to-white/20 rounded-3xl blur-xl opacity-60 group-focus-within:opacity-80 transition-opacity" />
+      <div className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/30 to-white/20 rounded-3xl blur-lg opacity-60 group-focus-within:opacity-80 transition-opacity duration-500 will-change-[opacity,transform] transform-gpu" />
 
       <div className="relative">
         <div
@@ -312,7 +312,7 @@ export function SmartInput({ onCapture }: SmartInputProps) {
           contentEditable
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          className="w-full px-6 py-4 pr-14 rounded-4xl bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder:text-white/40 text-lg font-sans focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 shadow-[0_0_40px_rgba(255,255,255,0.1)] overflow-y-auto max-h-[150px] min-h-[60px]"
+          className="w-full px-6 py-4 pr-14 rounded-4xl bg-white/10 backdrop-blur-lg border border-white/20 text-white placeholder:text-white/40 text-lg font-sans focus:outline-none focus:ring-2 focus:ring-white/30 transition-[box-shadow,background-color,border-color,opacity] duration-300 shadow-[0_0_30px_rgba(255,255,255,0.08)] overflow-y-auto max-h-[150px] min-h-[60px] transform-gpu"
           data-placeholder="Capture anything..."
           // Suppress React warning for contentEditable with dynamic content
           suppressContentEditableWarning={true}

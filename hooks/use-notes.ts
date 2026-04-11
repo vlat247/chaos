@@ -18,14 +18,20 @@ function mapDbNoteToNote(dbNote: DbNote): Note {
   };
 }
 
-export function useNotes() {
+export function useNotes(isAuthenticated: boolean) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch notes from the database on mount
+  // Fetch notes from the database on mount or when auth changes
   const fetchNotes = useCallback(async () => {
+    if (!isAuthenticated) {
+      setNotes([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/notes");
       if (res.ok) {
@@ -37,11 +43,11 @@ export function useNotes() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchNotes();
-  }, [fetchNotes]);
+  }, [fetchNotes, isAuthenticated]);
 
   const addNote = async (content: string) => {
     // Optimistic update

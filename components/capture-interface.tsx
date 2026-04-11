@@ -23,6 +23,7 @@ export function CaptureInterface() {
     }
   }, []);
 
+  const { user, isLoading: authLoading, error: authError, signIn, signUp, signOut, isAuthenticated } = useAuth();
   const {
     notes,
     editingId,
@@ -35,9 +36,7 @@ export function CaptureInterface() {
     saveEdit,
     togglePin,
     clearAllNotes,
-  } = useNotes();
-
-  const { user, isLoading: authLoading, error: authError, signIn, signUp, signOut, isAuthenticated } = useAuth();
+  } = useNotes(isAuthenticated);
 
   // Show auth modal if not authenticated
   if (!authLoading && !isAuthenticated) {

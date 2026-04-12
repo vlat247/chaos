@@ -2,7 +2,8 @@ import { X, Pin } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Note } from "@/types/types";
 import remarkBreaks from "remark-breaks";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import { ImageModal } from "./image-modal";
 
 interface NoteCardProps {
   note: Note;
@@ -28,6 +29,7 @@ export function NoteCard({
   onTogglePin,
 }: NoteCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -140,13 +142,20 @@ export function NoteCard({
             <img
               src={note.imageUrl}
               alt="Attached image"
-              className="w-full h-auto max-h-[400px] object-cover hover:scale-[1.02] transition-transform duration-500"
+              onClick={() => setIsImageModalOpen(true)}
+              className="w-full h-auto max-h-[400px] object-cover hover:scale-[1.02] transition-transform duration-500 cursor-zoom-in"
               onError={(e) => {
                 console.error(`Failed to load image for note ${note.id}:`, note.imageUrl);
               }}
             />
           </div>
         )}
+
+        <ImageModal
+          isOpen={isImageModalOpen}
+          onClose={() => setIsImageModalOpen(false)}
+          imageUrl={note.imageUrl || ""}
+        />
         <ReactMarkdown
           remarkPlugins={[remarkBreaks]}
           components={{

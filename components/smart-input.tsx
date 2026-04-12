@@ -407,7 +407,7 @@ export function SmartInput({ onCapture }: SmartInputProps) {
   };
 
   return (
-    <div className="relative w-full max-w-2xl group">
+    <div className="relative w-full max-w-3xl group">
       {/* Glow Effect */}
       <div className="absolute -inset-1 bg-gradient-to-r from-white/20 via-white/30 to-white/20 rounded-3xl blur-lg opacity-60 group-focus-within:opacity-80 transition-opacity duration-500 will-change-[opacity,transform] transform-gpu" />
  

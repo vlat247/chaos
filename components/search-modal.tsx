@@ -55,7 +55,7 @@ export function SearchModal({
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            className="relative w-full max-w-2xl bg-zinc-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-3xl bg-zinc-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
           >
             <Command className="flex flex-col w-full h-full max-h-[60vh]">
               <div className="flex items-center px-4 border-b border-white/5">

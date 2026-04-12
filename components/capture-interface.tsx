@@ -80,7 +80,7 @@ export function CaptureInterface() {
     <div className="relative w-full h-screen overflow-hidden bg-black/50">
       <div className="relative z-10 flex flex-col h-full">
         {/* ZONE A: Input Area */}
-        <div className="flex-none h-[35vh] flex flex-col items-center justify-center px-4 relative">
+        <div className="flex-none h-[25vh] flex flex-col items-center justify-center px-4 relative">
           {/* Top left: notes sidebar toggle */}
           <div className="absolute top-6 left-6">
             <button
@@ -128,8 +128,8 @@ export function CaptureInterface() {
         </div>
 
         {/* ZONE B: List Area */}
-        <div ref={listRef} className="flex-1 overflow-y-auto px-4 pt-8 pb-12">
-          <div className="w-full max-w-2xl mx-auto space-y-4">
+        <div ref={listRef} className="flex-1 overflow-y-auto px-4 pt-4 pb-12 sidebar-scroll">
+          <div className="w-full max-w-3xl mx-auto space-y-4">
             {notes.map((note) => (
               <div key={note.id} id={`note-${note.id}`} className="transition-all duration-300 rounded-xl">
                 <NoteCard

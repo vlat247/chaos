@@ -6,6 +6,7 @@ interface DbNote {
   id: number;
   content: string;
   is_pinned: boolean;
+  is_public: boolean;
   created_at: string;
   image_url?: string;
 }
@@ -16,6 +17,7 @@ function mapDbNoteToNote(dbNote: DbNote): Note {
     content: dbNote.content,
     timestamp: new Date(dbNote.created_at),
     isPinned: dbNote.is_pinned,
+    isPublic: dbNote.is_public,
     imageUrl: dbNote.image_url,
   };
 }
@@ -51,13 +53,14 @@ export function useNotes(isAuthenticated: boolean) {
     fetchNotes();
   }, [fetchNotes, isAuthenticated]);
 
-  const addNote = async (content: string, imageUrl?: string) => {
+  const addNote = async (content: string, imageUrl?: string, isPublic: boolean = false) => {
     // Optimistic update
     const tempNote: Note = {
       id: `temp-${Date.now()}`,
       content,
       timestamp: new Date(),
       isPinned: false,
+      isPublic,
       imageUrl,
     };
     setNotes((prev) => [tempNote, ...prev]);
@@ -66,7 +69,7 @@ export function useNotes(isAuthenticated: boolean) {
       const res = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, is_pinned: false, image_url: imageUrl }),
+        body: JSON.stringify({ content, is_pinned: false, is_public: isPublic, image_url: imageUrl }),
       });
 
       if (res.ok) {
@@ -94,9 +97,11 @@ export function useNotes(isAuthenticated: boolean) {
 
     try {
       const res = await fetch(`/api/notes/${id}`, { method: "DELETE" });
-      if (!res.ok && noteToDelete) {
-        // Rollback on error
-        setNotes((prev) => [...prev, noteToDelete]);
+      if (!res.ok) {
+        if (noteToDelete) {
+          // Rollback on error
+          setNotes((prev) => [...prev, noteToDelete]);
+        }
         console.error("Failed to delete note");
       }
     } catch (error) {
@@ -190,6 +195,44 @@ export function useNotes(isAuthenticated: boolean) {
     }
   };
 
+  const togglePublic = async (id: string) => {
+    const note = notes.find((n) => n.id === id);
+    if (!note) return;
+
+    const newPublicState = !note.isPublic;
+    // Optimistic update
+    setNotes((prev) =>
+      prev.map((n) =>
+        n.id === id ? { ...n, isPublic: newPublicState } : n
+      )
+    );
+
+    try {
+      const res = await fetch(`/api/notes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_public: newPublicState }),
+      });
+
+      if (!res.ok) {
+        // Rollback on error
+        setNotes((prev) =>
+          prev.map((n) =>
+            n.id === id ? { ...n, isPublic: !newPublicState } : n
+          )
+        );
+        console.error("Failed to toggle public state");
+      }
+    } catch (error) {
+      setNotes((prev) =>
+        prev.map((n) =>
+          n.id === id ? { ...n, isPublic: !newPublicState } : n
+        )
+      );
+      console.error("Failed to toggle public state:", error);
+    }
+  };
+
   const clearAllNotes = async () => {
     const oldNotes = [...notes];
     // Optimistic update
@@ -227,6 +270,7 @@ export function useNotes(isAuthenticated: boolean) {
     cancelEdit,
     saveEdit,
     togglePin,
+    togglePublic,
     clearAllNotes,
   };
 }

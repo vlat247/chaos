@@ -3,6 +3,7 @@ export interface Note {
   content: string;
   timestamp: Date;
   isPinned?: boolean;
+  isPublic?: boolean;
   imageUrl?: string;
 }
 

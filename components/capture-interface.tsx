@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
-import { Settings, LogOut, List } from "lucide-react";
+import { Settings, LogOut, List, Plus } from "lucide-react";
 import { useNotes } from "@/hooks/use-notes";
 import { useAuth } from "@/hooks/use-auth";
 import { SmartInput } from "./smart-input";
@@ -9,6 +9,7 @@ import { SettingsSidebar } from "./settings-sidebar";
 import { NotesSidebar } from "./notes-sidebar";
 import { AuthModal } from "./auth-modal";
 import { SearchModal } from "./search-modal";
+import { AppleNotesEditor } from "./apple-notes-editor";
 import { Search } from "lucide-react";
 import { useEffect } from "react";
 
@@ -16,6 +17,7 @@ export function CaptureInterface() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notesSidebarOpen, setNotesSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Keyboard shortcut for search
@@ -102,6 +104,13 @@ export function CaptureInterface() {
               <LogOut className="w-5 h-5" />
             </button>
             <button
+              onClick={() => setEditorOpen(true)}
+              className="p-2 rounded-lg text-amber-500/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
+              title="New Apple Note"
+            >
+              <Plus className="w-6 h-6" />
+            </button>
+            <button
               onClick={() => setSearchOpen(true)}
               className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
               title="Search notes (⌘K)"
@@ -170,6 +179,13 @@ export function CaptureInterface() {
         onClose={() => setSearchOpen(false)}
         notes={notes}
         onSelect={handleNoteClick}
+      />
+
+      {/* Apple Notes Editor */}
+      <AppleNotesEditor
+        isOpen={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        onSave={(content, isPublic) => addNote(content, undefined, isPublic)}
       />
     </div>
   );

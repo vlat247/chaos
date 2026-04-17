@@ -24,8 +24,6 @@ function mapDbNoteToNote(dbNote: DbNote): Note {
 
 export function useNotes(isAuthenticated: boolean) {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch notes from the database on mount or when auth changes
@@ -112,35 +110,28 @@ export function useNotes(isAuthenticated: boolean) {
     }
   };
 
-  const startEditing = (note: Note) => {
-    setEditingId(note.id);
-    setEditValue(note.content);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditValue("");
-  };
-
-  const saveEdit = async (id: string) => {
+  const saveEdit = async (id: string, content: string, isPublic?: boolean) => {
     const originalNote = notes.find((n) => n.id === id);
+    if (!originalNote) return;
+
     // Optimistic update
     setNotes((prev) =>
       prev.map((note) =>
-        note.id === id ? { ...note, content: editValue } : note
+        note.id === id ? { ...note, content, isPublic: isPublic ?? note.isPublic } : note
       )
     );
-    setEditingId(null);
-    setEditValue("");
 
     try {
+      const updates: any = { content };
+      if (isPublic !== undefined) updates.is_public = isPublic;
+
       const res = await fetch(`/api/notes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editValue }),
+        body: JSON.stringify(updates),
       });
 
-      if (!res.ok && originalNote) {
+      if (!res.ok) {
         // Rollback on error
         setNotes((prev) =>
           prev.map((n) => (n.id === id ? originalNote : n))
@@ -148,11 +139,9 @@ export function useNotes(isAuthenticated: boolean) {
         console.error("Failed to update note");
       }
     } catch (error) {
-      if (originalNote) {
-        setNotes((prev) =>
-          prev.map((n) => (n.id === id ? originalNote : n))
-        );
-      }
+      setNotes((prev) =>
+        prev.map((n) => (n.id === id ? originalNote : n))
+      );
       console.error("Failed to update note:", error);
     }
   };
@@ -261,13 +250,8 @@ export function useNotes(isAuthenticated: boolean) {
   return {
     notes: sortedNotes,
     isLoading,
-    editingId,
-    editValue,
-    setEditValue,
     addNote,
     deleteNote,
-    startEditing,
-    cancelEdit,
     saveEdit,
     togglePin,
     togglePublic,

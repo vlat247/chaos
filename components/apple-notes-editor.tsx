@@ -1,16 +1,17 @@
 "use client";
-
 import { useState, useEffect, useRef } from "react";
 import { X, Share2, Globe, Lock, Trash2, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Note } from "@/types/types";
 
 interface AppleNotesEditorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (content: string, isPublic: boolean) => void;
+  onSave: (content: string, isPublic: boolean, id?: string) => void;
+  initialNote?: Note | null;
 }
 
-export function AppleNotesEditor({ isOpen, onClose, onSave }: AppleNotesEditorProps) {
+export function AppleNotesEditor({ isOpen, onClose, onSave, initialNote }: AppleNotesEditorProps) {
   const [content, setContent] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
@@ -19,14 +20,20 @@ export function AppleNotesEditor({ isOpen, onClose, onSave }: AppleNotesEditorPr
   useEffect(() => {
     if (isOpen) {
       textareaRef.current?.focus();
-      setContent("");
+      if (initialNote) {
+        setContent(initialNote.content);
+        setIsPublic(initialNote.isPublic ?? true);
+      } else {
+        setContent("");
+        setIsPublic(true);
+      }
       setIsSaved(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialNote]);
 
   const handleSave = () => {
     if (content.trim()) {
-      onSave(content, isPublic);
+      onSave(content, isPublic, initialNote?.id);
       setIsSaved(true);
       setTimeout(() => {
         onClose();

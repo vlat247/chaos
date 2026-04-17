@@ -7,11 +7,6 @@ import { ImageModal } from "./image-modal";
 
 interface NoteCardProps {
   note: Note;
-  isEditing: boolean;
-  editValue: string;
-  setEditValue: (val: string) => void;
-  onSave: () => void;
-  onCancel: () => void;
   onDelete: () => void;
   onStartEdit: () => void;
   onTogglePin: () => void;
@@ -19,11 +14,6 @@ interface NoteCardProps {
 
 export function NoteCard({
   note,
-  isEditing,
-  editValue,
-  setEditValue,
-  onSave,
-  onCancel,
   onDelete,
   onStartEdit,
   onTogglePin,
@@ -31,18 +21,6 @@ export function NoteCard({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isEditing) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        onCancel();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isEditing, onCancel]);
   const formatDate = (date: Date) => {
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -56,33 +34,6 @@ export function NoteCard({
       minute: "2-digit",
     });
   };
-
-  if (isEditing) {
-    return (
-      <div 
-        ref={containerRef}
-        className="w-full p-4 rounded-xl bg-white/10 border border-white/20"
-      >
-        <textarea
-          autoFocus
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              onSave();
-            }
-            if (e.key === "Escape") onCancel();
-          }}
-          className="w-full h-auto min-h-[60px] px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white resize-none focus:outline-none focus:border-white/40"
-        />
-        <div className="text-xs text-white/40 flex justify-between">
-          <span>Markdown supported</span>
-          <span>Enter to save • Esc to cancel</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div

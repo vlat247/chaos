@@ -17,7 +17,8 @@ export function CaptureInterface() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notesSidebarOpen, setNotesSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [activeNote, setActiveNote] = useState<Note | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Keyboard shortcut for search
@@ -45,17 +46,25 @@ export function CaptureInterface() {
   const { user, isLoading: authLoading, error: authError, signIn, signUp, signOut, isAuthenticated } = useAuth();
   const {
     notes,
-    editingId,
-    editValue,
-    setEditValue,
     addNote,
     deleteNote,
-    startEditing,
-    cancelEdit,
     saveEdit,
     togglePin,
     clearAllNotes,
   } = useNotes(isAuthenticated);
+
+  const openEditor = (note: Note | null = null) => {
+    setActiveNote(note);
+    setIsEditorOpen(true);
+  };
+
+  const handleEditorSave = async (content: string, isPublic: boolean, id?: string) => {
+    if (id) {
+      await saveEdit(id, content, isPublic);
+    } else {
+      await addNote(content, undefined, isPublic);
+    }
+  };
 
   // Show auth modal if not authenticated
   if (!authLoading && !isAuthenticated) {
@@ -104,7 +113,7 @@ export function CaptureInterface() {
               <LogOut className="w-5 h-5" />
             </button>
             <button
-              onClick={() => setEditorOpen(true)}
+              onClick={() => openEditor(null)}
               className="p-2 rounded-lg text-amber-500/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
               title="New Apple Note"
             >
@@ -124,14 +133,16 @@ export function CaptureInterface() {
               <Settings className="w-5 h-5" />
             </button>
           </div>
-          <SmartInput onCapture={addNote} />
+          
+          <div className="w-full max-w-3xl" onClick={() => openEditor(null)}>
+            <div className="w-full px-6 py-4 rounded-4xl bg-white/5 backdrop-blur-lg border border-white/10 text-white/40 text-lg font-sans cursor-text hover:bg-white/10 transition-all">
+              Capture anything... 
+            </div>
+          </div>
+
           {notes.length === 0 && (
             <div className="mt-8 text-white/30 text-sm animate-pulse">
-              Press{" "}
-              <kbd className="font-mono bg-white/5 px-2 border border-white/10">
-                Enter
-              </kbd>{" "}
-              to save
+              Click to create your first public note
             </div>
           )}
         </div>
@@ -143,13 +154,8 @@ export function CaptureInterface() {
               <div key={note.id} id={`note-${note.id}`} className="transition-all duration-300 rounded-xl">
                 <NoteCard
                   note={note}
-                  isEditing={editingId === note.id}
-                  editValue={editValue}
-                  setEditValue={setEditValue}
-                  onSave={() => saveEdit(note.id)}
-                  onCancel={cancelEdit}
                   onDelete={() => deleteNote(note.id)}
-                  onStartEdit={() => startEditing(note)}
+                  onStartEdit={() => openEditor(note)}
                   onTogglePin={() => togglePin(note.id)}
                 />
               </div>
@@ -183,9 +189,10 @@ export function CaptureInterface() {
 
       {/* Apple Notes Editor */}
       <AppleNotesEditor
-        isOpen={editorOpen}
-        onClose={() => setEditorOpen(false)}
-        onSave={(content, isPublic) => addNote(content, undefined, isPublic)}
+        isOpen={isEditorOpen}
+        initialNote={activeNote}
+        onClose={() => setIsEditorOpen(false)}
+        onSave={handleEditorSave}
       />
     </div>
   );

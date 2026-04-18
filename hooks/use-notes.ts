@@ -89,6 +89,11 @@ export function useNotes(isAuthenticated: boolean) {
   };
 
   const deleteNote = async (id: string) => {
+    if (id.startsWith("temp-")) {
+      setNotes((prev) => prev.filter((note) => note.id !== id));
+      return;
+    }
+
     const noteToDelete = notes.find((n) => n.id === id);
     // Optimistic update
     setNotes((prev) => prev.filter((note) => note.id !== id));
@@ -96,11 +101,17 @@ export function useNotes(isAuthenticated: boolean) {
     try {
       const res = await fetch(`/api/notes/${id}`, { method: "DELETE" });
       if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Failed to delete note:", {
+          status: res.status,
+          id,
+          error: errorData,
+        });
+
         if (noteToDelete) {
           // Rollback on error
           setNotes((prev) => [...prev, noteToDelete]);
         }
-        console.error("Failed to delete note");
       }
     } catch (error) {
       if (noteToDelete) {

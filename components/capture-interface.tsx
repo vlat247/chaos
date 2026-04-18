@@ -193,6 +193,7 @@ export function CaptureInterface() {
         initialNote={activeNote}
         onClose={() => setIsEditorOpen(false)}
         onSave={handleEditorSave}
+        onDelete={deleteNote}
       />
     </div>
   );

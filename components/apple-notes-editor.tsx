@@ -8,10 +8,11 @@ interface AppleNotesEditorProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (content: string, isPublic: boolean, id?: string) => void;
+  onDelete?: (id: string) => void;
   initialNote?: Note | null;
 }
 
-export function AppleNotesEditor({ isOpen, onClose, onSave, initialNote }: AppleNotesEditorProps) {
+export function AppleNotesEditor({ isOpen, onClose, onSave, onDelete, initialNote }: AppleNotesEditorProps) {
   const [content, setContent] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
@@ -39,6 +40,19 @@ export function AppleNotesEditor({ isOpen, onClose, onSave, initialNote }: Apple
         onClose();
       }, 800);
     } else {
+      onClose();
+    }
+  };
+
+  const handleDelete = () => {
+    if (initialNote?.id && onDelete) {
+      if (window.confirm("Move this note to trash?")) {
+        onDelete(initialNote.id);
+        onClose();
+      }
+    } else {
+      // For a new unsaved note, just close/discard
+      setContent("");
       onClose();
     }
   };
@@ -101,7 +115,7 @@ export function AppleNotesEditor({ isOpen, onClose, onSave, initialNote }: Apple
               </button>
               
               <button 
-                onClick={() => { setContent(""); onClose(); }}
+                onClick={handleDelete}
                 className="text-white/40 hover:text-red-400 transition-colors"
                 title="Discard"
               >

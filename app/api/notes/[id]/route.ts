@@ -14,16 +14,39 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const numericId = parseInt(id, 10);
+  const numericId = Number(id);
 
-  const { error } = await supabase
-    .from("notes")
-    .delete()
-    .eq("id", numericId)
-    .eq("user_id", user.id);
+  // Diagnostic: Try to delete matching by either raw string ID or numeric ID
+  // This handles cases where Supabase expects one or the other.
+  const query = supabase.from("notes").delete().eq("user_id", user.id);
+  
+  if (!isNaN(numericId)) {
+    query.or(`id.eq.${id},id.eq.${numericId}`);
+  } else {
+    query.eq("id", id);
+  }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true });
+  const { data, error, count } = await query.select();
+
+  if (error) {
+    console.error("Supabase DELETE error:", error);
+    return NextResponse.json({ 
+      error: error.message, 
+      code: error.code,
+      details: error.details,
+      diag: { id, numericId, userId: user.id }
+    }, { status: 500 });
+  }
+
+  if (!data || data.length === 0) {
+    console.log(`Deletion failed: No note found. Diag: id=${id}, user=${user.id}`);
+    return NextResponse.json({ 
+      error: "Note not found or no permission", 
+      diag: { id, numericId, userId: user.id }
+    }, { status: 404 });
+  }
+
+  return NextResponse.json({ success: true, deleted: data[0] });
 }
 
 export async function PATCH(
@@ -39,7 +62,6 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const numericId = parseInt(id, 10);
   const body = await req.json();
 
   const updates: Record<string, unknown> = {};
@@ -50,11 +72,14 @@ export async function PATCH(
   const { data, error } = await supabase
     .from("notes")
     .update(updates)
-    .eq("id", numericId)
+    .eq("id", id)
     .eq("user_id", user.id)
     .select("*")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Supabase PATCH error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json(data);
 }

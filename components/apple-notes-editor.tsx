@@ -84,7 +84,7 @@ export function AppleNotesEditor({ isOpen, onClose, onSave, onDelete, initialNot
           <div 
             className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay"
             style={{ 
-              backgroundImage: `url('/apple_notes_texture_1776356756800.png')`,
+              backgroundImage: `url('/apple_notes_texture.png')`,
               backgroundSize: '400px'
             }}
           />

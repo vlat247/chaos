@@ -3,7 +3,7 @@ import { useState, useRef, useCallback } from "react";
 import { Settings, LogOut, List, Plus } from "lucide-react";
 import { useNotes } from "@/hooks/use-notes";
 import { useAuth } from "@/hooks/use-auth";
-import { SmartInput } from "./smart-input";
+import { Note } from "@/types/types";
 import { NoteCard } from "./note-card";
 import { SettingsSidebar } from "./settings-sidebar";
 import { NotesSidebar } from "./notes-sidebar";
